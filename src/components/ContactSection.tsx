@@ -64,7 +64,7 @@ export const ContactSection: React.FC = () => {
 
               <div className="mt-8 space-y-3 text-xs uppercase tracking-[0.18em] text-[#D4AF37]" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                 <div><a href="mailto:thechandramohan01@gmail.com" className="hover:text-[#F7E7C4] transition-colors">thechandramohan01@gmail.com</a></div>
-                <div><a href="tel:+918949389362" className="hover:text-[#F7E7C4] transition-colors">+91 8949389362</a></div>
+                
                 <div><a href="https://www.linkedin.com/in/chandramohan01/" target="_blank" rel="noreferrer" className="hover:text-[#F7E7C4] transition-colors">LinkedIn</a></div>
                 <div><a href="https://github.com/MrZeroOrez" target="_blank" rel="noreferrer" className="hover:text-[#F7E7C4] transition-colors">GitHub</a></div>
                 <div><a href="https://leetcode.com/u/MrZeroOrez/" target="_blank" rel="noreferrer" className="hover:text-[#F7E7C4] transition-colors">LeetCode</a></div>
