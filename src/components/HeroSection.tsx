@@ -39,57 +39,73 @@ const navItems = [
 export const HeroSection: React.FC = () => {
   const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
   const [isHovered, setIsHovered] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Bulletproof Autoplay for Android (Chrome / Samsung Internet) & iOS Safari
+  // Autoplay initially muted, then unmute on first user touch/click anywhere
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // 1. Force muted properties in native DOM (Required by Android Chrome autoplay policy)
+    // 1. Initial silent autoplay to satisfy Android & iOS policies
     video.muted = true;
     video.defaultMuted = true;
     video.setAttribute('muted', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('webkit-playsinline', '');
 
-    const startPlayback = () => {
+    const startSilentPlay = () => {
       if (video.paused) {
-        const promise = video.play();
-        if (promise !== undefined) {
-          promise.catch(() => {
-            // Browser policy blocked immediate autoplay; wait for interaction
-          });
-        }
+        video.play().catch(() => {});
       }
     };
 
-    // Attempt standard playback once ready
-    video.addEventListener('loadedmetadata', startPlayback);
-    startPlayback();
+    video.addEventListener('loadedmetadata', startSilentPlay);
+    startSilentPlay();
 
-    // 2. Fallback for strict Android power-saving / data-saver modes:
-    // Starts the video automatically on first touch/scroll anywhere on screen
-    const handleFirstInteraction = () => {
-      startPlayback();
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('scroll', handleFirstInteraction);
-      window.removeEventListener('click', handleFirstInteraction);
+    // 2. Unmute on first user touch/tap gesture
+    const handleFirstTouch = () => {
+      if (video) {
+        video.muted = false;
+        video.volume = 1.0;
+        setIsMuted(false);
+        // Ensure playback continues when unmuted
+        video.play().catch(() => {});
+      }
+
+      // Cleanup listeners once triggered
+      window.removeEventListener('touchend', handleFirstTouch);
+      window.removeEventListener('click', handleFirstTouch);
     };
 
-    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
-    window.addEventListener('scroll', handleFirstInteraction, { passive: true });
-    window.addEventListener('click', handleFirstInteraction, { passive: true });
+    window.addEventListener('touchend', handleFirstTouch, { passive: true, once: true });
+    window.addEventListener('click', handleFirstTouch, { passive: true, once: true });
 
     return () => {
-      video.removeEventListener('loadedmetadata', startPlayback);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('scroll', handleFirstInteraction);
-      window.removeEventListener('click', handleFirstInteraction);
+      video.removeEventListener('loadedmetadata', startSilentPlay);
+      window.removeEventListener('touchend', handleFirstTouch);
+      window.removeEventListener('click', handleFirstTouch);
     };
   }, []);
 
-  // Desktop custom cursor tracking
+  // Manual audio toggle button handler
+  const toggleSound = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.muted) {
+      video.muted = false;
+      video.volume = 1.0;
+      setIsMuted(false);
+      video.play().catch(() => {});
+    } else {
+      video.muted = true;
+      setIsMuted(true);
+    }
+  };
+
+  // Custom cursor movement tracking
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setCursorPos({ x: e.clientX, y: e.clientY });
@@ -100,7 +116,7 @@ export const HeroSection: React.FC = () => {
 
   return (
     <section className="relative w-screen h-[100dvh] overflow-hidden bg-black text-[#E8DFD8] font-sans selection:bg-[#cbb59d] selection:text-black md:cursor-none">
-      {/* Desktop-only Custom Cursor */}
+      {/* Desktop-only custom cursor */}
       {cursorPos.x >= 0 && (
         <motion.div
           className="hidden md:flex fixed top-0 left-0 pointer-events-none z-50 rounded-full border border-[#D4AF37]/40 items-center justify-center backdrop-blur-[1px]"
@@ -115,7 +131,16 @@ export const HeroSection: React.FC = () => {
         />
       )}
 
-      {/* Background Video Section - Works on all aspect ratios */}
+      {/* Floating Sound Toggle Pill (Bottom-Left) */}
+      <button
+        onClick={toggleSound}
+        type="button"
+        className="fixed bottom-6 left-6 z-40 flex items-center space-x-2 px-3 py-1.5 rounded-full bg-black/60 border border-[#8C6D4F]/50 hover:border-[#D4AF37] text-[#EAD8C7] text-[10px] sm:text-xs tracking-[0.2em] uppercase backdrop-blur-md transition-all duration-300 pointer-events-auto"
+      >
+        <span>{isMuted ? '🔇 Tap to Unmute' : '🔊 Sound On'}</span>
+      </button>
+
+      {/* Background Video Section */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-black flex items-center justify-center md:justify-end">
         <video
           ref={videoRef}
@@ -129,11 +154,11 @@ export const HeroSection: React.FC = () => {
           <source src="/videos/video.mp4" type="video/mp4" />
         </video>
 
-        {/* Ambient Dark Gradients: Balanced for readability on small screens */}
+        {/* Ambient Overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 md:hidden pointer-events-none" />
         <div className="hidden md:block absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-black via-black/85 to-transparent pointer-events-none" />
 
-        {/* Floating Watermark */}
+        {/* Watermark Insignia */}
         <div className="absolute bottom-5 right-5 sm:bottom-6 sm:right-6 lg:bottom-10 lg:right-12 pointer-events-none flex items-center justify-center z-10">
           <div className="relative flex items-center justify-center">
             <div className="absolute w-24 h-24 sm:w-32 sm:h-32 bg-black/85 rounded-full blur-xl" />
@@ -278,7 +303,6 @@ export const HeroSection: React.FC = () => {
             </motion.div>
           </motion.div>
 
-          {/* Desktop Right Signature Column */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
